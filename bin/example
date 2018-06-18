@@ -1,0 +1,95 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use FSM::Simple;
+
+my %trans = (
+    init => ['foo', 'bar'],
+    foo  => ['bar'],
+    bar  => ['stop'],
+    stop => [],
+);
+
+my $fsm = Machine->new();
+
+$fsm->add_state(
+    init => sub {
+        my ($state) = @_;
+        print "A big scary monster stands before you.\n";
+        show_goto_states('init');
+        $state->{'returned_value'} = ask();
+        return $state;
+    }
+);
+
+$fsm->add_state(
+    foo  => sub {
+        my ($state) = @_;
+        show_goto_states('foo');
+        $state->{'returned_value'} = ask();
+        return $state;
+    }
+);
+
+$fsm->add_state(
+    bar  => sub {
+        my ($state) = @_;
+        show_goto_states('bar');
+        $state->{'returned_value'} = ask();
+        return $state;
+    }
+);
+
+$fsm->add_state(
+    stop => {
+        print "Congrats! You've reached the end of this game.\n";
+        $state->{'returned_value'} = undef;
+        return $state;
+    }
+);
+
+foreach my $from (keys %trans) {
+    $fsm->add_trans($from => @{$trans{$from}});
+}
+
+$fsm->run;
+
+sub show_goto_states ($current_state) {
+    print '[available: ('.join(', ', @{$trans{$current_state}}).")]\n";
+}
+
+sub prompt {
+    print 'What to you do? ';
+    my $in = <STDIN>;
+    chomp $in;
+    return $in;
+}
+
+sub ask {
+    my $to;
+    while(1) {
+        $to = prompt() || next;
+        $to =~ s/^\s+//g;
+        $to =~ s/\s+$//g;
+        exit if $to =~ m/(?:q(?:uit)?|e(?:xit)?)/;
+        last if $trans{$to};
+        warn "Invalid state name!\n";
+    }
+    return $to;
+}
+
+package Machine {
+    use strict;
+    use warnings;
+    use parent 'FSM::Simple';
+    sub add_state {
+        my ($self, $name, $sub) = @_;
+        $self->SUPER::add_state(name => $name, sub => $sub);
+    }
+    sub add_trans {
+        my ($self, $from, @exp_vals) = @_;
+        foreach my $exp_val (@exp_vals) {
+            $self->SUPER::add_trans(from => $from, to => $exp_val, exp_val => $exp_val);
+        }
+    }
+}
