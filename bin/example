@@ -4,10 +4,10 @@ use warnings;
 use FSM::Simple;
 
 my %trans = (
-    init => ['foo', 'bar'],
-    foo  => ['bar'],
-    bar  => ['stop'],
-    stop => [],
+    init  => ['fight', 'flee'],
+    fight => ['flee'],
+    flee  => ['stop'],
+    stop  => [],
 );
 
 my $fsm = Machine->new();
@@ -23,25 +23,28 @@ $fsm->add_state(
 );
 
 $fsm->add_state(
-    foo  => sub {
+    fight => sub {
         my ($state) = @_;
-        show_goto_states('foo');
+        print "You swing...\n";
+        show_goto_states('fight');
         $state->{'returned_value'} = ask();
         return $state;
     }
 );
 
 $fsm->add_state(
-    bar  => sub {
+    flee => sub {
         my ($state) = @_;
-        show_goto_states('bar');
+        print "You ran away from the big scary monster.\n";
+        show_goto_states('flee');
         $state->{'returned_value'} = ask();
         return $state;
     }
 );
 
 $fsm->add_state(
-    stop => {
+    stop => sub {
+        my ($state) = @_;
         print "Congrats! You've reached the end of this game.\n";
         $state->{'returned_value'} = undef;
         return $state;
@@ -54,7 +57,8 @@ foreach my $from (keys %trans) {
 
 $fsm->run;
 
-sub show_goto_states ($current_state) {
+sub show_goto_states {
+    my ($current_state) = @_;
     print '[available: ('.join(', ', @{$trans{$current_state}}).")]\n";
 }
 
